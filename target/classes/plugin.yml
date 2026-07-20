@@ -1,0 +1,6 @@
+name: ATPCore
+version: '1.0.0'
+main: aaronpost.atpcore.ATPCore
+api-version: '1.21'
+authors: [ Aaronn ]
+description: Shared core library plugin - schematics, data registries, GUI base classes.
