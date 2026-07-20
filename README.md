@@ -16,7 +16,7 @@ It currently powers <a href="https://www.youtube.com/watch?v=nL1OREsZn2o">Craft 
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 All code lives under `aaronpost.atpcore`:
 
