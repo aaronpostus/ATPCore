@@ -1,5 +1,7 @@
 package aaronpost.atpcore.registries;
 
+import aaronpost.atpcore.schematics.LocationWrapper2;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -14,6 +16,20 @@ import java.util.Map;
 public class Registry {
     // LinkedHashMap preserves insertion order — this is the order registries load in
     public static final Map<DataRegistry<?>, Boolean> registries = new LinkedHashMap<>();
+
+    /**
+     * Named coordinates registry ("Locations.json"), owned by ATPCore because
+     * the coordinate wand and {@code AdminCoordinateMenu} operate on it.
+     * The host plugin decides where the file lives — call {@link #initLocationData}
+     * from onEnable before registering registries. Create-once: safe on reload.
+     */
+    public static DataRegistry<LocationWrapper2> LocationData;
+
+    public static synchronized void initLocationData(String subPath) {
+        if (LocationData == null) {
+            LocationData = new DataRegistry<>(LocationWrapper2.class, "location", "Locations.json", subPath);
+        }
+    }
 
     protected static void register(DataRegistry<?> registry, boolean autoLoad) {
         registries.put(registry, autoLoad);

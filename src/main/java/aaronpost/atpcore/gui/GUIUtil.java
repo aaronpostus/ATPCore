@@ -27,6 +27,22 @@ public final class GUIUtil {
         fillEmptyGUISpots(inventory, inventory.getSize(), emptyItem);
     }
 
+    public static ItemStack attachNameAndLore(ItemStack item, String name, java.util.List<String> lore) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setLore(lore);
+            meta.setDisplayName(name);
+        }
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    public static java.util.List<String> prettyIndent(java.util.List<String> lore, int indent) {
+        String indentation = " ".repeat(indent);
+        lore.replaceAll(s -> indentation + s);
+        return lore;
+    }
+
     public static void fillEmptyGUISpots(Inventory inventory, int inventorySize, ItemStack filler) {
         for (int i = 0; i < inventorySize; i++) {
             if (inventory.getItem(i) == null) {

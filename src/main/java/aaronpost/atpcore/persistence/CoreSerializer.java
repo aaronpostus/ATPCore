@@ -3,6 +3,8 @@ package aaronpost.atpcore.persistence;
 import aaronpost.atpcore.ATPCore;
 import aaronpost.atpcore.registries.DataRegistry;
 import aaronpost.atpcore.registries.IDataContainer;
+import aaronpost.atpcore.registries.Registry;
+import aaronpost.atpcore.schematics.LocationWrapper2;
 import aaronpost.atpcore.schematics.Schematic;
 import aaronpost.atpcore.schematics.Schematics;
 import com.google.gson.Gson;
@@ -76,6 +78,18 @@ public final class CoreSerializer {
             return schematics;
         }
         return Collections.emptyList();
+    }
+
+    /** Writes {@link Registry#LocationData} out to {@code <dataDir>/Locations.json}. */
+    public static void serializeLocations(File dataDir) throws IOException {
+        if (Registry.LocationData == null) return;
+        List<LocationWrapper2> locs = new ArrayList<>(Registry.LocationData.getAllValues());
+        File file = new File(dataDir, "Locations.json");
+        file.createNewFile();
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        try (Writer w = new FileWriter(file, false)) {
+            gson.toJson(locs, w);
+        }
     }
 
     /**
