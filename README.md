@@ -2,17 +2,17 @@
 
 **ATPCore** is a library of shared utilities and frameworks I use to build Minecraft plugins. It ships as its own Spigot plugin — game plugins declare `depend: [ATPCore]`, compile against it as a `provided` Maven dependency, and build on top of its systems instead of reinventing them.
 
-It currently powers **Craft of Clans** and is the foundation for an upcoming infinite-parkour game where players build levels that are saved as schematics and pasted down as courses.
+It currently powers <a href="https://www.youtube.com/watch?v=nL1OREsZn2o">Craft of Clans</a>, and I plan to use it for more projects. There may be some useful utilities for other folks in this repo as well.
 
 ---
 
-## ✨ Highlights
+## Highlights
 
-- 🏗️ **Full-featured schematic system** — capture regions in-world with a wand, cache them, and paste them instantly, in batches, rotated around a pivot, or layer-by-layer for construction animations. Handles signs, beds, doors, attached blocks, banners, and block-like entities (armor stands, item frames, paintings).
-- 📦 **Data registry system** — a framework I'm quite proud of that makes it easy to deserialize data from JSON and bind containers to objects at runtime. Registries validate on load, catch missing keys early during startup, and preserve a deliberate load order.
-- 🖱️ **GUI utilities** — a paginated inventory menu that's easy to build on top of (self-registering listeners, optional async loading), plus handlers and helpers for skulls, filler panes, and click-quantity math.
-- 🔇 **Moderation tools** — a mute system with pluggable persistence and a leetspeak-normalizing content filter.
-- 🪝 **Hook-driven design** — ATPCore never depends on a game plugin. Game-specific behavior (banner theming, paste batching config, mute storage, chat branding) enters through small interfaces the host plugin installs at startup.
+- **Full-featured schematic system** — capture regions in-world with a wand, cache them, and paste them instantly, in batches, rotated around a pivot, or layer-by-layer for construction animations. Handles signs, beds, doors, attached blocks, banners, and block-like entities (armor stands, item frames, paintings).
+- **Data registry system** — a framework I'm quite proud of that makes it easy to deserialize data from JSON and bind containers to objects at runtime. Registries validate on load, catch missing keys early during startup, and preserve a deliberate load order.
+- **GUI utilities** — a paginated inventory menu that's easy to build on top of (self-registering listeners, optional async loading), plus handlers and helpers for skulls, filler panes, and click-quantity math.
+- **Moderation tools** — a mute system with pluggable persistence and a leetspeak-normalizing content filter.
+- **Hook-driven design** — ATPCore never depends on a game plugin. Game-specific behavior (banner theming, paste batching config, mute storage, chat branding) enters through small interfaces the host plugin installs at startup.
 
 ---
 
@@ -22,9 +22,8 @@ All code lives under `aaronpost.atpcore`:
 
 ```
 aaronpost/atpcore
-├── ATPCore.java      → plugin entry point
 ├── schematics/       → schematic capture, caching, and pasting
-├── registries/       → JSON-backed data registry framework
+├── registries/       → JSON data registry framework
 ├── persistence/      → Gson serialization helpers
 ├── gui/              → inventory menu building blocks
 ├── moderation/       → mutes + content filtering
@@ -32,9 +31,9 @@ aaronpost/atpcore
 └── util/             → small general-purpose helpers
 ```
 
-### 🏗️ `schematics/`
+### `schematics/`
 
-The heart of the library — a custom block-snapshot system (no WorldEdit dependency).
+A custom block-snapshot system akin to WorldEdit.
 
 | Class | Purpose |
 |---|---|
@@ -48,7 +47,7 @@ The heart of the library — a custom block-snapshot system (no WorldEdit depend
 
 Schematics persist as pretty-printed JSON keyed by field names — saved files survive refactors as long as the fields do.
 
-### 📦 `registries/`
+### `registries/`
 
 The data registry system: define a container class, drop a JSON list file in your plugin folder, and get validated, queryable data at runtime.
 
@@ -58,7 +57,7 @@ The data registry system: define a container class, drop a JSON list file in you
 | `DataRegistry<T>` | An ordered, validated map of containers keyed by name. During startup, `get()` **throws** on missing keys so misconfigured data is caught immediately; after initialization it returns null instead. Includes `getStatAtLevel(...)` for per-level stat arrays that clamp to their last element. |
 | `Registry` | The registry-of-registries base class. Game plugins **extend** it, declare their `DataRegistry` fields, and register them in an explicit `registerAll()` — registration order defines load order. Also owns the shared `LocationData` coordinate registry (`initLocationData(path)` decides where `Locations.json` lives). |
 
-### 💾 `persistence/`
+### `persistence/`
 
 Gson helpers shared by every consumer:
 
@@ -66,7 +65,7 @@ Gson helpers shared by every consumer:
 - `DeserializerAdapter<T>` — polymorphic Gson adapter using a `{type, properties}` envelope; resolves concrete classes against a package prefix you supply. This is what lets a single JSON file hold many subclasses.
 - `LocalDateTypeAdapter` — `LocalDate` ⇄ `"yyyy-MM-dd"`.
 
-### 🖱️ `gui/`
+### `gui/`
 
 Building blocks for inventory UIs:
 
@@ -76,13 +75,13 @@ Building blocks for inventory UIs:
 - `IDisplayable` — "this thing can render itself as an item" contract used across menus.
 - `ClickQuantityAdjuster` — reusable ±1/±5 click math with min/max clamping.
 
-### 🔇 `moderation/`
+### `moderation/`
 
 - `MuteManager` — in-memory mute cache with permanent/timed mutes and lazy expiry. Persistence is delegated to a `MuteStore` your plugin provides (Craft of Clans backs it with its SQL database); without one, mutes are memory-only.
 - `MuteChatListener` — cancels chat from muted players and tells them how long is left.
 - `ContentFilter` — server-local blocklist filter for names and chat. Normalizes input (lowercase, leetspeak mapping, non-letter stripping, repeated-letter collapsing, Unicode NFKD) to defeat the usual bypass tricks. Word lists live in a `content_filter.json` the server operator maintains — never in source control.
 
-### 📖 `books/`
+### `books/`
 
 - `BookData` — a registry container for written books, with `&`-color-code parsing and `<a>https://...</a>` clickable links in page text.
 
@@ -92,7 +91,7 @@ Building blocks for inventory UIs:
 
 ---
 
-## 🚀 Using ATPCore in a plugin
+## Using ATPCore in a plugin
 
 **1. Build & install locally:**
 
@@ -123,7 +122,7 @@ depend: [ATPCore]
 // Registries: extend aaronpost.atpcore.registries.Registry, then
 Registry.registerAll();
 
-// Schematic hooks (both optional)
+// Schematic hooks
 Schematics.s.setBannerResolver(new MyBannerResolver());
 Schematics.s.setPasteConfig(new MyPasteConfig());
 
@@ -135,17 +134,15 @@ schematics.forEach(Schematic::buildCache);
 
 Deploy the ATPCore jar to the server's `plugins/` folder alongside your plugin — nothing is shaded into consumers.
 
-> ⚠️ **Note:** statics are shared across every plugin on the server (consumer classloaders delegate to ATPCore's). There is one `Schematics.s` pool per server, so schematic names must be globally unique.
-
 ---
 
-## 🛠️ Requirements
+## Requirements
 
 - Java 21
 - Spigot/Paper 1.21+
 - Maven
 
-## 🎮 Used by
+## Used by
 
-- **Craft of Clans** — a base-building and raiding game inspired by Clash of Clans
+- <a href="https://www.youtube.com/watch?v=nL1OREsZn2o">Craft of Clans</a> — a base-building and raiding game inspired by Clash of Clans
 - **Infinite Parkour** *(in development)* — players build levels saved as schematics, pasted down endlessly as courses
