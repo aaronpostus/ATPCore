@@ -1,5 +1,7 @@
 package aaronpost.atpcore;
 
+import aaronpost.atpcore.gui.GUIListener;
+import aaronpost.atpcore.gui.GUIManager;
 import aaronpost.atpcore.schematics.Controller;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -10,6 +12,12 @@ import org.bukkit.plugin.java.JavaPlugin;
  */
 public final class ATPCore extends JavaPlugin {
     public static ATPCore plugin;
+
+    /**
+     * Server-wide inventory-GUI router. One instance backs every plugin's menus,
+     * so only one {@link GUIListener} is ever registered.
+     */
+    public static GUIManager guiManager;
 
     private static volatile boolean shuttingDown = false;
 
@@ -31,6 +39,9 @@ public final class ATPCore extends JavaPlugin {
     public void onEnable() {
         plugin = this;
         shuttingDown = false;
+        // Inventory-GUI routing, shared by every plugin built on ATPCore
+        guiManager = new GUIManager();
+        getServer().getPluginManager().registerEvents(new GUIListener(guiManager), this);
         // Schematic + coordinate wand handling (wands themselves are given out by game plugins)
         getServer().getPluginManager().registerEvents(new Controller(), this);
         log("ATPCore enabled.");

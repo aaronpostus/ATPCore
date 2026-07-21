@@ -4,35 +4,32 @@ import aaronpost.atpcore.ATPCore;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.Sound;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.HandlerList;
-import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
 
 /**
- * Abstract class for a paginated inventory menu.
- * Uses a custom InventoryHolder to isolate click handling to this instance.
+ * Paginated inventory menu. Constructing one opens it for the player.
+ * <p>
+ * Click/close routing goes through {@link GUIManager} like every other
+ * {@link InventoryGUI}; this class does not register listeners of its own.
+ * The bottom row is reserved for navigation: a left arrow at slot
+ * {@code itemsPerPage}, a right arrow at the last slot, and whatever
+ * {@link #renderFooter()} draws in between.
  */
-public abstract class AbstractPagedMenu<T> implements Listener {
+public abstract class AbstractPagedMenu<T> extends InventoryGUI {
 
     protected final Player player;
-    protected final Inventory inventory;
     protected List<T> entries;
 
     protected int currentPage;
     protected int totalPages;
     protected final int itemsPerPage;
-
-    private final String title;
     protected final int inventorySize;
 
     private long lastClickTime = 0;
@@ -43,36 +40,31 @@ public abstract class AbstractPagedMenu<T> implements Listener {
     }
 
     public AbstractPagedMenu(Player player, String title, List<T> entries, int itemRows) {
+        super(ChatColor.GREEN + title, (itemRows + 1) * 9);
         this.player = player;
-        this.title = title;
         this.entries = entries;
         this.itemsPerPage = itemRows * 9;
         this.inventorySize = (itemRows + 1) * 9;
         this.currentPage = 1;
         this.totalPages = Math.max(1, (int) Math.ceil(entries.size() / (double) itemsPerPage));
 
-        this.inventory = Bukkit.createInventory(new MenuHolder(this), inventorySize, ChatColor.GREEN + title);
-
-        Bukkit.getPluginManager().registerEvents(this, ATPCore.plugin);
-
-        if (isAsyncLoad()) {
-            // Defer rendering and opening until async data has been loaded.
-            scheduleAsyncOpen();
-            return;
-        }
-
-        setupNavigation();
-        renderPage(1);
-        player.openInventory(inventory);
-        player.playSound(player.getEyeLocation(), Sound.BLOCK_BONE_BLOCK_PLACE, 0.5f, 1f);
+        ATPCore.guiManager.openGUI(this, player);
     }
+
+    @Override
+    protected Inventory createInventory(String name) {
+        return Bukkit.createInventory(null, resolveSize(54), name);
+    }
+
+    // --- Async pre-load, bridged onto the InventoryGUI hooks ---
 
     /**
      * Subclasses override and return {@code true} to opt into async pre-loading
-     * of the entry list. When enabled, the constructor will not render or open
-     * the inventory until {@link #loadAsyncEntries(Player)} completes off-thread
-     * and {@link #applyAsyncEntries(List)} runs on the main thread.
+     * of the entry list. When enabled, the menu is not rendered or opened until
+     * {@link #loadAsyncEntries(Player)} completes off-thread and
+     * {@link #applyAsyncEntries(List)} runs on the main thread.
      */
+    @Override
     protected boolean isAsyncLoad() {
         return false;
     }
@@ -91,27 +83,22 @@ public abstract class AbstractPagedMenu<T> implements Listener {
         this.totalPages = Math.max(1, (int) Math.ceil(loaded.size() / (double) itemsPerPage));
     }
 
-    private void scheduleAsyncOpen() {
-        if (ATPCore.isShuttingDown()) return;
-        Bukkit.getScheduler().runTaskAsynchronously(ATPCore.plugin, () -> {
-            List<T> loaded = loadAsyncEntries(player);
-            if (ATPCore.isShuttingDown()) return;
-            Bukkit.getScheduler().runTask(ATPCore.plugin, () -> {
-                if (!player.isOnline()) {
-                    // Avoid leaking the registered listener if the player disconnected mid-load.
-                    HandlerList.unregisterAll(this);
-                    return;
-                }
-                applyAsyncEntries(loaded);
-                setupNavigation();
-                renderPage(1);
-                player.openInventory(inventory);
-                player.playSound(player.getEyeLocation(), Sound.BLOCK_BONE_BLOCK_PLACE, 0.5f, 1f);
-            });
-        });
+    @Override
+    protected final Object loadAsync(Player player) {
+        return loadAsyncEntries(player);
     }
 
-    /** Called to populate a given page’s items */
+    @Override
+    @SuppressWarnings("unchecked")
+    protected final void applyAsyncData(Object data) {
+        if (data instanceof List<?> list) {
+            applyAsyncEntries((List<T>) list);
+        }
+    }
+
+    // --- Rendering ---
+
+    /** Called to populate a given page's items */
     protected abstract void renderItems(int startIndex, int endIndex);
 
     /** Called when an item is clicked */
@@ -119,6 +106,12 @@ public abstract class AbstractPagedMenu<T> implements Listener {
 
     /** Called when the menu is closed */
     protected void onMenuClose() { }
+
+    @Override
+    public void decorate(Player player) {
+        setupNavigation();
+        renderPage(currentPage);
+    }
 
     private void setupNavigation() {
         // Left arrow
@@ -128,7 +121,7 @@ public abstract class AbstractPagedMenu<T> implements Listener {
             meta.setDisplayName(ChatColor.GOLD + "<==");
             leftArrow.setItemMeta(meta);
         }
-        inventory.setItem(itemsPerPage, leftArrow);
+        getInventory().setItem(itemsPerPage, leftArrow);
 
         // Right arrow
         ItemStack rightArrow = OfflineSkull.getSkull(GUIUtil.RIGHT_ARROW_URL);
@@ -137,7 +130,7 @@ public abstract class AbstractPagedMenu<T> implements Listener {
             meta.setDisplayName(ChatColor.GOLD + "==>");
             rightArrow.setItemMeta(meta);
         }
-        inventory.setItem(inventorySize - 1, rightArrow);
+        getInventory().setItem(inventorySize - 1, rightArrow);
         renderFooter();
     }
 
@@ -158,31 +151,29 @@ public abstract class AbstractPagedMenu<T> implements Listener {
         int start = (page - 1) * itemsPerPage;
         int end = Math.min(start + itemsPerPage, entries.size());
         renderItems(start, end);
-        GUIUtil.fillEmptyGUISpots(inventory);
+        GUIUtil.fillEmptyGUISpots(getInventory());
     }
 
     private void clearPage() {
         for (int slot = 0; slot < itemsPerPage; slot++) {
-            inventory.setItem(slot, null);
+            getInventory().setItem(slot, null);
         }
     }
 
-    @EventHandler
+    // --- Event routing ---
+
+    @Override
     public void onClick(InventoryClickEvent e) {
-        // Scope clicks only to this menu instance
-        if (!(e.getInventory().getHolder() instanceof MenuHolder holder)) return;
-        if (holder.getMenu() != this) return;
+        e.setCancelled(true);
+
         if (!e.getWhoClicked().equals(player)) return;
         if (e.getCurrentItem() == null) return;
 
         long now = System.currentTimeMillis();
         if (now - lastClickTime < CLICK_COOLDOWN_MS) {
-            e.setCancelled(true);
             return;
         }
         lastClickTime = now;
-
-        e.setCancelled(true);
 
         ItemStack item = e.getCurrentItem();
         String display = item.hasItemMeta() ? ChatColor.stripColor(item.getItemMeta().getDisplayName()) : "";
@@ -210,29 +201,9 @@ public abstract class AbstractPagedMenu<T> implements Listener {
         }
     }
 
-    @EventHandler
+    @Override
     public void onClose(InventoryCloseEvent e) {
-        if (!(e.getInventory().getHolder() instanceof MenuHolder holder)) return;
-        if (holder.getMenu() != this) return;
-
-        HandlerList.unregisterAll(this);
+        super.onClose(e);
         onMenuClose();
-    }
-
-    /**
-     * Custom holder to isolate click events to a specific menu instance.
-     */
-    public static class MenuHolder implements InventoryHolder {
-        private final AbstractPagedMenu<?> menu;
-        public MenuHolder(AbstractPagedMenu<?> menu) {
-            this.menu = menu;
-        }
-        @Override
-        public Inventory getInventory() {
-            return null;
-        }
-        public AbstractPagedMenu<?> getMenu() {
-            return menu;
-        }
     }
 }
