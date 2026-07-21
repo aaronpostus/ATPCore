@@ -209,14 +209,6 @@ public class Schematic implements Serializable {
         Schematics.s.markUpdated(this);
     }
     public String getName() { return name; }
-    /**
-     * Estimate time in ticks (approx) for batching.
-     */
-    public long getEstimatedPasteTimeTicks(int batchSize, int ticks) {
-        int totalBlocks = xLength * yLength * zLength;
-        int totalBatches = (int) Math.ceil((double) totalBlocks / batchSize);
-        return (long) totalBatches * ticks + 40L;
-    }
 
     public boolean constructionNeedsUpdate(int layersBuilt, float percentageComplete) {
         return layersToBuild(percentageComplete) != layersBuilt;
@@ -260,10 +252,6 @@ public class Schematic implements Serializable {
 
     public int layersToBuild(float percentageComplete) {
         return (int) Math.ceil(percentageComplete * (yLength + yOffset));
-    }
-
-    public void pasteSchematic(Location origLoc) {
-        pasteSchematic(origLoc, false, null, null);
     }
 
     public void pasteSchematic(Location origLoc, java.util.UUID ownerUuid) {
@@ -801,10 +789,6 @@ public class Schematic implements Serializable {
         private final Material material;
         private final BlockData blockData;
         private final CachedSignData signData;
-
-        CachedBlockData(Material material, BlockData blockData) {
-            this(material, blockData, null);
-        }
 
         CachedBlockData(Material material, BlockData blockData, CachedSignData signData) {
             this.material = material;
