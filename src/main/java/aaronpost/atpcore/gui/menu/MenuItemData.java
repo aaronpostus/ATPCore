@@ -1,6 +1,7 @@
 package aaronpost.atpcore.gui.menu;
 
 import aaronpost.atpcore.gui.ItemTemplate;
+import aaronpost.atpcore.gui.OfflineSkull;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 
@@ -28,6 +29,13 @@ public class MenuItemData {
     public String name;
     public List<String> lore;
     public int amount = 1;
+    /**
+     * Texture URL for a custom player head, e.g.
+     * {@code "http://textures.minecraft.net/texture/<hash>"}. Requires
+     * {@code material} to be {@code PLAYER_HEAD}. Without this a head renders
+     * untextured, which silently loses the icon a menu was designed around.
+     */
+    public String skullUrl;
     /**
      * Spaces prefixed to each lore line, overriding the menu's
      * {@code loreIndent}. Write the lore unindented and let this do the
@@ -64,6 +72,12 @@ public class MenuItemData {
         if (lore == null) lore = List.of();
         if (name == null) name = "";
         if (loreIndent != null && loreIndent < 0) loreIndent = 0;
+        if (skullUrl != null && !skullUrl.isEmpty()
+                && Material.matchMaterial(material) != Material.PLAYER_HEAD) {
+            throw new IllegalArgumentException(
+                    "Menu '" + menuKey + "' slot " + slot + " sets skullUrl but its material is '"
+                            + material + "'; skullUrl requires PLAYER_HEAD.");
+        }
         if (action != null && !action.isEmpty() && !isBuiltInAction(action)) {
             // Deliberately strict: json owns layout and trivial text, code owns
             // behaviour. Rejecting anything else here stops a DSL growing back.
@@ -96,7 +110,9 @@ public class MenuItemData {
                 // Blank spacer lines stay blank — padding them just adds trailing space.
                 colored.add(text.isEmpty() ? text : pad + text);
             }
-            template = new ItemTemplate(Material.matchMaterial(material), color(name), colored);
+            template = (skullUrl == null || skullUrl.isEmpty())
+                    ? new ItemTemplate(Material.matchMaterial(material), color(name), colored)
+                    : new ItemTemplate(OfflineSkull.getSkull(skullUrl), color(name), colored);
         }
         return template;
     }

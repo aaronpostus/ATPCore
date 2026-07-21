@@ -203,10 +203,13 @@ public abstract class AbstractJsonMenu<C> extends InventoryGUI {
             }
         }
 
-        decorateDynamic(player);
-
-        // Buttons added by decorateDynamic paint themselves here.
+        // Repaint bound buttons from their icon creators first, so that
+        // decorateDynamic gets the last word: a subclass that overrides the
+        // icon of a json-declared item (a toggle showing live state, say) must
+        // not have that overwritten by the item's own creator afterwards.
         super.decorate(player);
+
+        decorateDynamic(player);
 
         if (data.shouldFill()) {
             GUIUtil.fillEmptyGUISpots(getInventory());
@@ -272,6 +275,11 @@ public abstract class AbstractJsonMenu<C> extends InventoryGUI {
     /**
      * Hook for the parts of a menu that can't be a fixed grid: per-player state,
      * loop-built lists, live counters. Default does nothing.
+     * <p>
+     * Runs after the json items and their bound buttons are painted, so
+     * anything set here wins. That includes overriding the icon of a
+     * json-declared item — declare it in json to get the slot and the click
+     * binding, then repaint it here to show live state.
      */
     protected void decorateDynamic(Player player) {
     }
