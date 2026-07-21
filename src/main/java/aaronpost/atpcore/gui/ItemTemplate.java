@@ -13,17 +13,32 @@ import java.util.List;
  */
 public class ItemTemplate {
     private final Material material;
+    /** When set, items are built from a clone of this instead of {@code material}. */
+    private final ItemStack base;
     private final String name;
     private final List<String> lore;
 
     public ItemTemplate(Material material, String name, List<String> lore) {
         this.material = material;
+        this.base = null;
         this.name = name;
         this.lore = lore;
     }
 
     public ItemTemplate(Material material, String name, String... lore) {
         this(material, name, List.of(lore));
+    }
+
+    /**
+     * Template over a prepared stack — a textured head, a coloured banner,
+     * anything whose appearance a {@link Material} alone can't express. The
+     * stack is cloned on every build, so the original is never mutated.
+     */
+    public ItemTemplate(ItemStack base, String name, List<String> lore) {
+        this.material = base.getType();
+        this.base = base;
+        this.name = name;
+        this.lore = lore;
     }
 
     public Material getMaterial() {
@@ -40,7 +55,8 @@ public class ItemTemplate {
 
     /** Builds the item, substituting any {@code {token}} placeholders with the given key/value pairs. */
     public ItemStack build(String... tokenKv) {
-        return GUIUtil.attachNameAndLore(new ItemStack(material),
+        ItemStack stack = base != null ? base.clone() : new ItemStack(material);
+        return GUIUtil.attachNameAndLore(stack,
                 GUIUtil.tokens(name, tokenKv),
                 GUIUtil.tokens(lore, tokenKv));
     }
