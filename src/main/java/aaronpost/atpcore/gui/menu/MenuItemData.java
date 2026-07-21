@@ -21,6 +21,13 @@ import java.util.List;
 public class MenuItemData {
     // REQUIRED
     public int slot = -1;
+    /**
+     * Omit to reserve the slot without an icon — the menu's
+     * {@link AbstractJsonMenu#decorateDynamic} paints it instead. Only allowed
+     * on an item with an {@code id}, since something has to identify the slot
+     * to the code that fills it. Use this for buttons whose icon genuinely
+     * varies at render time (a toggle, a cost that may be unaffordable).
+     */
     public String material;
 
     // OPTIONAL
@@ -61,10 +68,12 @@ public class MenuItemData {
                             + ", outside the " + inventorySize + "-slot inventory");
         }
         if (material == null || material.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Menu '" + menuKey + "' slot " + slot + " is missing a material");
-        }
-        if (Material.matchMaterial(material) == null) {
+            if (id == null || id.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Menu '" + menuKey + "' slot " + slot + " has no material and no id. "
+                                + "Give it a material, or give it an id and paint it in decorateDynamic.");
+            }
+        } else if (Material.matchMaterial(material) == null) {
             throw new IllegalArgumentException(
                     "Menu '" + menuKey + "' slot " + slot + " has unknown material '" + material + "'");
         }
@@ -73,10 +82,11 @@ public class MenuItemData {
         if (name == null) name = "";
         if (loreIndent != null && loreIndent < 0) loreIndent = 0;
         if (skullUrl != null && !skullUrl.isEmpty()
-                && Material.matchMaterial(material) != Material.PLAYER_HEAD) {
+                && (isCodePainted() || Material.matchMaterial(material) != Material.PLAYER_HEAD)) {
             throw new IllegalArgumentException(
-                    "Menu '" + menuKey + "' slot " + slot + " sets skullUrl but its material is '"
-                            + material + "'; skullUrl requires PLAYER_HEAD.");
+                    "Menu '" + menuKey + "' slot " + slot + " sets skullUrl but its material is "
+                            + (isCodePainted() ? "code-painted" : "'" + material + "'")
+                            + "; skullUrl requires PLAYER_HEAD.");
         }
         if (action != null && !action.isEmpty() && !isBuiltInAction(action)) {
             // Deliberately strict: json owns layout and trivial text, code owns
@@ -99,8 +109,23 @@ public class MenuItemData {
         }
     }
 
-    /** The item's static shape; {@code {token}} placeholders are resolved per render. */
+    /**
+     * True when the json reserves this slot but leaves the icon to code.
+     * {@link #getTemplate()} returns null for these.
+     */
+    public boolean isCodePainted() {
+        return material == null || material.isEmpty();
+    }
+
+    /**
+     * The item's static shape, or null if this item is
+     * {@linkplain #isCodePainted() code-painted}. {@code {token}} placeholders
+     * are resolved per render.
+     */
     public ItemTemplate getTemplate() {
+        if (isCodePainted()) {
+            return null;
+        }
         if (template == null) {
             int indent = loreIndent == null ? MenuData.DEFAULT_LORE_INDENT : loreIndent;
             String pad = " ".repeat(indent);

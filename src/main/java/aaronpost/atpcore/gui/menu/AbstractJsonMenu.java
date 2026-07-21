@@ -72,8 +72,29 @@ public abstract class AbstractJsonMenu<C> extends InventoryGUI {
     private final Map<String, Predicate<C>> visibility = new HashMap<>();
     private final Map<String, Function<C, String>> tokens = new LinkedHashMap<>();
 
-    protected AbstractJsonMenu(String menuKey) {
-        super(titleOf(menuKey), sizeOf(menuKey));
+    /**
+     * @param menuKey     the json file's {@code name}
+     * @param titleTokens optional {@code key, value, ...} pairs substituted into
+     *                    the json {@code title}, for menus titled after the thing
+     *                    they were opened from. These are resolved before the
+     *                    inventory exists, so they may only come from constructor
+     *                    arguments — {@link #token} is the general mechanism.
+     */
+    protected AbstractJsonMenu(String menuKey, String... titleTokens) {
+        this(menuKey, null, titleTokens);
+    }
+
+    /**
+     * Variant for a family of menus that share a title convention, so their
+     * json files can leave {@code title} out entirely.
+     *
+     * @param defaultTitle used when the json omits {@code title}; may itself
+     *                     contain {@code &} colours and {@code {tokens}}
+     * @param titleTokens  an array rather than varargs purely to keep this
+     *                     constructor distinct from the one above
+     */
+    protected AbstractJsonMenu(String menuKey, String defaultTitle, String[] titleTokens) {
+        super(titleOf(menuKey, defaultTitle, titleTokens), sizeOf(menuKey));
         this.data = menuSource.apply(menuKey);
     }
 
@@ -138,9 +159,14 @@ public abstract class AbstractJsonMenu<C> extends InventoryGUI {
 
     // Title/size must be known before the super constructor builds the inventory,
     // so both are read straight off the source rather than off `data`.
-    private static String titleOf(String menuKey) {
+    private static String titleOf(String menuKey, String defaultTitle, String[] titleTokens) {
         MenuData menu = menuSource.apply(menuKey);
-        return menu == null ? menuKey : menu.getTitle();
+        if (menu == null) return menuKey;
+        String title = menu.getTitle();
+        if (title.isEmpty() && defaultTitle != null) {
+            title = ChatColor.translateAlternateColorCodes('&', defaultTitle);
+        }
+        return GUIUtil.tokens(title, titleTokens == null ? new String[0] : titleTokens);
     }
 
     private static int sizeOf(String menuKey) {
@@ -252,9 +278,15 @@ public abstract class AbstractJsonMenu<C> extends InventoryGUI {
         return getViewer();
     }
 
-    /** Builds one item with this menu's tokens applied. */
+    /**
+     * Builds one item with this menu's tokens applied, or null when the item is
+     * code-painted — the slot stays empty until {@link #decorateDynamic} fills it.
+     */
     private ItemStack render(MenuItemData item, C ctx) {
         ItemTemplate template = item.getTemplate();
+        if (template == null) {
+            return null;
+        }
         if (tokens.isEmpty()) {
             return template.build(item.amount);
         }
