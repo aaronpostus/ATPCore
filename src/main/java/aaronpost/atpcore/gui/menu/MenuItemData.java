@@ -117,6 +117,27 @@ public class MenuItemData {
         return material == null || material.isEmpty();
     }
 
+    /** Fills in any appearance field the json left unset; idempotent. */
+    public void applyDefaults(String defaultMaterial, String defaultName, List<String> defaultLore) {
+        boolean changed = false;
+        if (isCodePainted() && defaultMaterial != null) {
+            material = defaultMaterial;
+            changed = true;
+        }
+        if ((name == null || name.isEmpty()) && defaultName != null) {
+            name = defaultName;
+            changed = true;
+        }
+        if ((lore == null || lore.isEmpty()) && defaultLore != null) {
+            lore = defaultLore;
+            changed = true;
+        }
+        // The template caches the old appearance; drop it so it rebuilds.
+        if (changed) {
+            template = null;
+        }
+    }
+
     /**
      * The item's static shape, or null if this item is
      * {@linkplain #isCodePainted() code-painted}. {@code {token}} placeholders
