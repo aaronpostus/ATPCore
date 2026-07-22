@@ -147,6 +147,30 @@ public abstract class AbstractJsonMenu<C> extends InventoryGUI {
         ATPCore.guiManager.openGUI(this, player);
     }
 
+    /**
+     * The slot an id sits in, or -1 if this menu's json doesn't declare it.
+     * Lets {@link #decorateDynamic} paint a code-painted item without hardcoding
+     * a slot the json owns.
+     */
+    protected final int slotOf(String itemId) {
+        if (data == null) return -1;
+        MenuItemData item = data.getItem(itemId);
+        return item == null ? -1 : item.slot;
+    }
+
+    /**
+     * True if the json places an item in this slot. A menu that fills slots in
+     * a loop should skip these, or it will paint over its own chrome —
+     * {@link #decorateDynamic} runs last and would win.
+     */
+    protected final boolean isJsonSlot(int slot) {
+        if (data == null) return false;
+        for (MenuItemData item : data.getItems()) {
+            if (item.slot == slot) return true;
+        }
+        return false;
+    }
+
     private boolean declares(String itemId, String what) {
         if (data == null) return false; // already logged at startup
         if (data.getItem(itemId) == null) {

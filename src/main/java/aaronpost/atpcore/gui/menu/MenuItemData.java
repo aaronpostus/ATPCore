@@ -118,6 +118,35 @@ public class MenuItemData {
     }
 
     /**
+     * Fills in appearance the json left out, for menus with well-known ids —
+     * a confirm dialog's {@code yes}/{@code no}, say — so their json only has
+     * to give a slot. Anything the json did specify is left alone, so a file
+     * can override just the name and still inherit the material.
+     * <p>
+     * Idempotent, and safe to call on shared registry data: every menu using
+     * this key wants the same defaults.
+     */
+    public void applyDefaults(String defaultMaterial, String defaultName, List<String> defaultLore) {
+        boolean changed = false;
+        if (isCodePainted() && defaultMaterial != null) {
+            material = defaultMaterial;
+            changed = true;
+        }
+        if ((name == null || name.isEmpty()) && defaultName != null) {
+            name = defaultName;
+            changed = true;
+        }
+        if ((lore == null || lore.isEmpty()) && defaultLore != null) {
+            lore = defaultLore;
+            changed = true;
+        }
+        // The template caches the old appearance; drop it so it rebuilds.
+        if (changed) {
+            template = null;
+        }
+    }
+
+    /**
      * The item's static shape, or null if this item is
      * {@linkplain #isCodePainted() code-painted}. {@code {token}} placeholders
      * are resolved per render.
