@@ -117,15 +117,7 @@ public class MenuItemData {
         return material == null || material.isEmpty();
     }
 
-    /**
-     * Fills in appearance the json left out, for menus with well-known ids —
-     * a confirm dialog's {@code yes}/{@code no}, say — so their json only has
-     * to give a slot. Anything the json did specify is left alone, so a file
-     * can override just the name and still inherit the material.
-     * <p>
-     * Idempotent, and safe to call on shared registry data: every menu using
-     * this key wants the same defaults.
-     */
+    /** Fills in any appearance field the json left unset; idempotent. */
     public void applyDefaults(String defaultMaterial, String defaultName, List<String> defaultLore) {
         boolean changed = false;
         if (isCodePainted() && defaultMaterial != null) {

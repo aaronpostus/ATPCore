@@ -6,31 +6,9 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * A json-backed "are you sure?" dialog: the wording and layout live in a menu
- * json file, the actions stay in Java.
- *
- * <pre>
- * ConfirmJsonGUI.of("confirm_disband_clan")
- *         .yes(p -&gt; disband(p))
- *         .no(p -&gt; p.sendMessage("Cancelled."))
- *         .open(player);
- * </pre>
- *
- * <h3>Reserved ids</h3>
- * {@code yes} and {@code no} carry defaults, so the smallest useful file is
- * just two slots:
- *
- * <pre>
- * { "name": "confirm_x", "title": "&amp;cReally?", "rows": 1,
- *   "items": [ { "id": "yes", "slot": 2 }, { "id": "no", "slot": 6 } ] }
- * </pre>
- *
- * Defaults apply per field, so a file can override the name and still inherit
- * the material. A {@code no} that only needs to shut the dialog can skip the
- * Java binding entirely and use {@code "action": "close"} in json.
- * <p>
- * Both bindings close the inventory before running, matching what a player
- * expects from a dialog.
+ * A json-backed "are you sure?" dialog: wording and layout in a menu json file,
+ * actions in Java. The reserved ids {@code yes}/{@code no} carry defaults, so a
+ * file only needs their slots. Both bindings close the inventory before running.
  */
 public class ConfirmJsonGUI extends AbstractJsonMenu<Player> {
 
@@ -44,11 +22,7 @@ public class ConfirmJsonGUI extends AbstractJsonMenu<Player> {
     private static List<String> defaultYesLore = null;
     private static List<String> defaultNoLore = null;
 
-    /**
-     * Overrides the look every {@code yes}/{@code no} falls back to, so a game
-     * can brand its dialogs once instead of per file. Call from {@code onEnable}.
-     * Null leaves a default unchanged.
-     */
+    /** Rebrands the {@code yes}/{@code no} defaults; a null arg leaves that default unchanged. */
     public static void setDefaults(String yesMaterial, String yesName, List<String> yesLore,
                                    String noMaterial, String noName, List<String> noLore) {
         if (yesMaterial != null) defaultYesMaterial = yesMaterial;
