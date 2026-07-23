@@ -122,6 +122,44 @@ public final class GUIUtil {
         return result;
     }
 
+    // --- Lore colour ---
+
+    /** Colour used for lore lines that don't set one; vanilla would render them purple italic. */
+    public static final ChatColor DEFAULT_LORE_COLOR = ChatColor.GRAY;
+
+    /** Prefixes {@link #DEFAULT_LORE_COLOR} onto every lore line that doesn't already pick a colour. */
+    public static List<String> defaultLoreColor(List<String> lore) {
+        if (lore == null) return null;
+        List<String> result = new ArrayList<>(lore.size());
+        for (String line : lore) {
+            result.add(defaultLoreColor(line));
+        }
+        return result;
+    }
+
+    public static String defaultLoreColor(String line) {
+        if (line == null || line.isBlank() || setsOwnColor(line)) {
+            return line;
+        }
+        return DEFAULT_LORE_COLOR + line;
+    }
+
+    /** True when the first colour code in the line comes before any visible text. */
+    private static boolean setsOwnColor(String line) {
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (c == ChatColor.COLOR_CHAR) {
+                if (i + 1 >= line.length()) return false;
+                char code = Character.toLowerCase(line.charAt(i + 1));
+                if (code == 'x' || code == 'r') return true; // hex prefix / explicit reset
+                ChatColor color = ChatColor.getByChar(code);
+                return color != null && color.isColor();
+            }
+            if (c != ' ') return false;
+        }
+        return false;
+    }
+
     // --- Item meta helpers ---
 
     public static ItemStack attachComingSoonLore(ItemStack stack, String name) {
@@ -137,7 +175,7 @@ public final class GUIUtil {
     public static ItemStack attachLore(ItemStack item, List<String> lore) {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setLore(lore);
+            meta.setLore(defaultLoreColor(lore));
         }
         item.setItemMeta(meta);
         return item;
@@ -146,7 +184,7 @@ public final class GUIUtil {
     public static ItemStack attachNameAndLore(ItemStack item, String name, List<String> lore) {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setLore(lore);
+            meta.setLore(defaultLoreColor(lore));
             meta.setDisplayName(name);
         }
         item.setItemMeta(meta);
