@@ -14,7 +14,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.List;
 
 /**
- * Paginated inventory menu. Constructing one opens it for the player.
+ * Paginated inventory menu. Constructing one opens it for the player, and decorates it
+ * once more on the next tick so subclass fields assigned after {@code super(...)} are
+ * reflected.
  * <p>
  * Click/close routing goes through {@link GUIManager} like every other
  * {@link InventoryGUI}; this class does not register listeners of its own.
@@ -35,6 +37,9 @@ public abstract class AbstractPagedMenu<T> extends InventoryGUI {
     private long lastClickTime = 0;
     private static final long CLICK_COOLDOWN_MS = 200;
 
+    /** False until construction has finished; see {@link #decorate(Player)}. */
+    private boolean constructed;
+
     public AbstractPagedMenu(Player player, String title, List<T> entries) {
         this(player, title, entries, 5);
     }
@@ -49,6 +54,21 @@ public abstract class AbstractPagedMenu<T> extends InventoryGUI {
         this.totalPages = Math.max(1, (int) Math.ceil(entries.size() / (double) itemsPerPage));
 
         ATPCore.guiManager.openGUI(this, player);
+        scheduleConstructionRender();
+    }
+
+    /**
+     * The constructor above opens the menu, which decorates it before any subclass
+     * constructor body has run. Redraw once those fields exist.
+     */
+    private void scheduleConstructionRender() {
+        if (ATPCore.isShuttingDown()) return;
+        Bukkit.getScheduler().runTask(ATPCore.plugin, () -> {
+            constructed = true;
+            if (player != null && player.isOnline()) {
+                decorate(player);
+            }
+        });
     }
 
     @Override
@@ -109,6 +129,15 @@ public abstract class AbstractPagedMenu<T> extends InventoryGUI {
 
     @Override
     public void decorate(Player player) {
+        if (!constructed) {
+            // Subclass state may be missing; scheduleConstructionRender() redraws shortly.
+            try {
+                setupNavigation();
+                renderPage(currentPage);
+            } catch (RuntimeException ignored) {
+            }
+            return;
+        }
         setupNavigation();
         renderPage(currentPage);
     }
