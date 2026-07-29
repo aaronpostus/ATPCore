@@ -57,10 +57,7 @@ public abstract class AbstractPagedMenu<T> extends InventoryGUI {
         scheduleConstructionRender();
     }
 
-    /**
-     * The constructor above opens the menu, which decorates it before any subclass
-     * constructor body has run. Redraw once those fields exist.
-     */
+    /** Opening decorates the menu before any subclass constructor body has run. */
     private void scheduleConstructionRender() {
         if (ATPCore.isShuttingDown()) return;
         Bukkit.getScheduler().runTask(ATPCore.plugin, () -> {
