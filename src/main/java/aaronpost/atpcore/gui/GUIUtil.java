@@ -1,5 +1,8 @@
 package aaronpost.atpcore.gui;
 
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -12,6 +15,8 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Generic inventory/item helpers shared by every plugin built on ATPCore.
@@ -317,5 +322,88 @@ public final class GUIUtil {
         if (x >= map.length) return;
         if (y >= map[0].length) return;
         map[x][y] = item.clone();
+    }
+
+    /** Translate {@code &}-prefixed colour codes; null-safe ("" for null). */
+    public static String colorize(String text) {
+        if (text == null) return "";
+        return ChatColor.translateAlternateColorCodes('&', text);
+    }
+
+    private static final Pattern LINK_PATTERN = Pattern.compile("<a>(.+?)</a>");
+
+    /** Parses {@code &} colour codes plus {@code <a>url</a>} into clickable components. */
+    public static BaseComponent[] parseString(String input) {
+        List<BaseComponent> components = new ArrayList<>();
+
+        int lastIndex = 0;
+        Matcher matcher = LINK_PATTERN.matcher(input);
+
+        while (matcher.find()) {
+            String beforeLink = input.substring(lastIndex, matcher.start());
+            if (!beforeLink.isEmpty()) {
+                components.addAll(parseColors(beforeLink));
+            }
+
+            String url = matcher.group(1);
+            TextComponent linkComp = new TextComponent(url);
+            linkComp.setColor(net.md_5.bungee.api.ChatColor.BLUE);
+            linkComp.setUnderlined(true);
+            linkComp.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, url));
+            components.add(linkComp);
+
+            lastIndex = matcher.end();
+        }
+
+        if (lastIndex < input.length()) {
+            components.addAll(parseColors(input.substring(lastIndex)));
+        }
+
+        return components.toArray(new BaseComponent[0]);
+    }
+
+    public static List<BaseComponent> parseColors(String text) {
+        List<BaseComponent> components = new ArrayList<>();
+
+        String[] parts = text.split("(?=&)");
+        ChatColor currentColor = ChatColor.RESET;
+        boolean bold = false;
+        boolean italic = false;
+        boolean underline = false;
+        boolean strikethrough = false;
+        boolean magic = false;
+
+        for (String part : parts) {
+            if (part.isEmpty()) continue;
+
+            if (part.startsWith("&")) {
+                char code = part.charAt(1);
+                ChatColor color = ChatColor.getByChar(code);
+
+                if (color != null) {
+                    if (color.isColor()) currentColor = color;
+                    if (color == ChatColor.BOLD) bold = true;
+                    if (color == ChatColor.ITALIC) italic = true;
+                    if (color == ChatColor.UNDERLINE) underline = true;
+                    if (color == ChatColor.STRIKETHROUGH) strikethrough = true;
+                    if (color == ChatColor.MAGIC) magic = true;
+                }
+
+                part = part.substring(2);
+            }
+
+            if (!part.isEmpty()) {
+                TextComponent comp = new TextComponent(part);
+                comp.setColor(currentColor.asBungee());
+                comp.setBold(bold);
+                comp.setItalic(italic);
+                comp.setUnderlined(underline);
+                comp.setStrikethrough(strikethrough);
+                comp.setObfuscated(magic);
+                components.add(comp);
+            }
+        }
+
+        return components;
     }
 }
