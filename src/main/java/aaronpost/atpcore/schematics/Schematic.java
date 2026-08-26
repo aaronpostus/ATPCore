@@ -203,6 +203,26 @@ public class Schematic implements Serializable {
         if (effectiveHeight >= 0) return effectiveHeight;
         return yLength + yOffset;
     }
+
+    /** Effective height once {@code top} is pasted rotated at the shared pivotPoint (e.g. a cannon barrel). */
+    public int effectiveHeightWithTop(Schematic top) {
+        if (top == null || !eventBlockLocs.containsKey("pivotPoint")
+                || !top.eventBlockLocs.containsKey("pivotPoint")) {
+            return getEffectiveHeight();
+        }
+        int basePivotY = (int) eventBlockLocs.get("pivotPoint").getLoc().getY();
+        int topPivotY = (int) top.eventBlockLocs.get("pivotPoint").getLoc().getY();
+        int topHighestLayer = top.getEffectiveHeight() - 1 - top.yOffset;
+        return combinedEffectiveHeight(yLength, yOffset, basePivotY, topHighestLayer, topPivotY);
+    }
+
+    // Pure geometry mirroring the Y bounding-box in compileWithTop, so both agree on where the top lands.
+    public static int combinedEffectiveHeight(int baseYLength, int baseYOffset, int basePivotY,
+                                              int topHighestLayer, int topPivotY) {
+        int topContribution = basePivotY - baseYOffset + (topHighestLayer - topPivotY);
+        int maxY = Math.max(baseYLength - 1, topContribution);
+        return maxY + 1 + baseYOffset;
+    }
     public void setyOffset(int yOffset)
     {
         this.yOffset = yOffset;
