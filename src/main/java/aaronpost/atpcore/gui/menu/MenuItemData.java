@@ -1,9 +1,11 @@
 package aaronpost.atpcore.gui.menu;
 
+import aaronpost.atpcore.gui.GUIUtil;
 import aaronpost.atpcore.gui.ItemTemplate;
 import aaronpost.atpcore.gui.OfflineSkull;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +52,12 @@ public class MenuItemData {
      */
     public Integer loreIndent;
     /**
+     * {@code minecraft:custom_model_data} strings (usually one, e.g.
+     * {@code ["builder_tool"]}) so a resource pack can retexture just this item
+     * instead of every stack of the material.
+     */
+    public List<String> modelData;
+    /**
      * A trivial built-in action, for buttons not worth a Java binding:
      * {@code "close"} or {@code "message:<text>"} ({@code &} colours, prefixed).
      * Anything that touches game state is bound in code instead — see
@@ -87,6 +95,11 @@ public class MenuItemData {
                     "Menu '" + menuKey + "' slot " + slot + " sets skullUrl but its material is "
                             + (isCodePainted() ? "code-painted" : "'" + material + "'")
                             + "; skullUrl requires PLAYER_HEAD.");
+        }
+        if (modelData != null && !modelData.isEmpty() && isCodePainted()) {
+            throw new IllegalArgumentException(
+                    "Menu '" + menuKey + "' slot " + slot + " sets modelData but is code-painted; "
+                            + "the code that paints the slot owns the item's tags.");
         }
         if (action != null && !action.isEmpty() && !isBuiltInAction(action)) {
             // Deliberately strict: json owns layout and trivial text, code owns
@@ -156,9 +169,13 @@ public class MenuItemData {
                 // Blank spacer lines stay blank — padding them just adds trailing space.
                 colored.add(text.isEmpty() ? text : pad + text);
             }
-            template = (skullUrl == null || skullUrl.isEmpty())
-                    ? new ItemTemplate(Material.matchMaterial(material), color(name), colored)
-                    : new ItemTemplate(OfflineSkull.getSkull(skullUrl), color(name), colored);
+            ItemStack base = (skullUrl == null || skullUrl.isEmpty())
+                    ? new ItemStack(Material.matchMaterial(material))
+                    : OfflineSkull.getSkull(skullUrl);
+            if (modelData != null && !modelData.isEmpty()) {
+                GUIUtil.tagModelData(base, modelData);
+            }
+            template = new ItemTemplate(base, color(name), colored);
         }
         return template;
     }

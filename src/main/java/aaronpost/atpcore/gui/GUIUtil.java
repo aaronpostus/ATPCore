@@ -9,6 +9,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -215,6 +216,25 @@ public final class GUIUtil {
         }
         item.setItemMeta(meta);
         return item;
+    }
+
+    /**
+     * Tags the item with {@code minecraft:custom_model_data} strings so a resource
+     * pack can retexture just these items instead of every stack of the material.
+     */
+    public static ItemStack tagModelData(ItemStack item, List<String> strings) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            CustomModelDataComponent cmd = meta.getCustomModelDataComponent();
+            cmd.setStrings(strings);
+            meta.setCustomModelDataComponent(cmd);
+        }
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    public static ItemStack tagModelData(ItemStack item, String... strings) {
+        return tagModelData(item, List.of(strings));
     }
 
     public static ItemStack attachName(ItemStack item, String displayName) {
